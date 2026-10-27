@@ -63,6 +63,11 @@
   .unit-toggle{display:inline-flex;border:1px solid var(--line);border-radius:9px;overflow:hidden;margin:2px 0 10px;}
   .unit-toggle .ut{font-size:11.5px;font-weight:700;padding:6px 13px;color:var(--muted);cursor:pointer;background:#fff;}
   .unit-toggle .ut.on{background:var(--strength);color:#fff;}
+  .lastref{display:flex;align-items:center;gap:8px;background:var(--strength-soft);border-radius:10px;padding:8px 10px;margin:2px 0 10px;font-size:12px;color:var(--muted);}
+  .lastref .lr-txt{flex:1;line-height:1.4;}
+  .lastref .lr-txt b{color:var(--strength);font-weight:700;font-family:"Archivo";}
+  .lastref .reffill{flex-shrink:0;border:none;background:var(--strength);color:#fff;font-family:inherit;font-size:12px;font-weight:700;padding:7px 12px;border-radius:9px;cursor:pointer;}
+  .lastref .reffill:active{transform:scale(.96);}
   .cardio-fields{display:flex;gap:10px;margin-top:2px;}
   .cardio-fields .cf{flex:1;}
   .cardio-fields label{display:block;font-size:11px;font-weight:700;color:var(--muted);margin-bottom:5px;}
@@ -122,6 +127,9 @@
   .goal-title::placeholder,.goal-note::placeholder{color:var(--faint);font-weight:600;}
   svg.chart{width:100%;height:150px;overflow:visible;display:block;}
   .quickweight{display:flex;flex-direction:column;gap:8px;margin-top:14px;}
+  .slot-toggle{display:flex;gap:8px;}
+  .slot-toggle .st{flex:1;text-align:center;font-size:13px;font-weight:700;padding:9px;border:1px solid var(--line);border-radius:10px;background:#fff;color:var(--muted);cursor:pointer;}
+  .slot-toggle .st.on{background:var(--ink);color:#fff;border-color:var(--ink);}
   .qw-inputs{display:flex;gap:8px;}
   .qw-inputs input{flex:1;min-width:0;padding:11px 14px;border:1px solid var(--line);border-radius:11px;font-family:"Archivo";font-weight:700;font-size:15px;background:#fff;color:var(--ink);}
   .quickweight button{width:100%;padding:13px;border:none;background:var(--ink);color:#fff;border-radius:11px;font-weight:700;font-size:15px;cursor:pointer;}
@@ -151,6 +159,7 @@
   .recrow .rd{font-family:"Archivo";font-weight:700;color:var(--muted);font-size:12px;}
   .recrow .rv{font-family:"Archivo";font-weight:700;}
   .recrow .rv .fat{color:var(--flame);margin-left:8px;}
+  .recrow .rv .vf{color:#C98A1A;margin-left:8px;}
   .recrow .rv .cd{color:var(--cardio);font-weight:600;font-size:12px;}
   .diary-line .dtxt{font-size:13.5px;line-height:1.5;color:var(--ink);}
   .diary-line .dtxt b{font-weight:700;}
@@ -244,10 +253,17 @@
       <svg class="chart" id="weightChart"></svg>
       <div class="chart-sub" style="margin-top:16px">體脂肪 (%)</div>
       <svg class="chart" id="fatChart"></svg>
+      <div class="chart-sub" style="margin-top:16px">內臟脂肪等級 <span style="color:var(--faint);font-weight:600">· 目標降到 8 以下</span></div>
+      <svg class="chart" id="vfatChart"></svg>
       <div class="quickweight">
+        <div class="slot-toggle" id="slotToggle">
+          <span class="st" onclick="setBodySlot('am')">🌅 早上</span>
+          <span class="st" onclick="setBodySlot('pm')">🌙 晚上</span>
+        </div>
         <div class="qw-inputs">
           <input type="number" step="0.1" inputmode="decimal" id="wInput" placeholder="體重 kg">
           <input type="number" step="0.1" inputmode="decimal" id="fatInput" placeholder="體脂 %">
+          <input type="number" step="1" inputmode="numeric" id="vfatInput" placeholder="內臟">
         </div>
         <button onclick="addBody()">記錄</button>
       </div>
@@ -382,14 +398,16 @@ const SEED=[
  {date:"2026-10-10", cardio:[C("緩坡快走","","20","","坡度11 速度4-5")], lifts:[L("器械胸推","lb",[[85,10],[85,10],[85,10]],"","狀況好，不太累"),L("肩飛鳥","lb",[[30,10]],"","器械，角度卡"),L("肩推","kg",[[15,8],[15,8],[15,8]],"","單側，退15求品質"),L("二頭彎舉","lb",[[55,10],[55,10],[55,10]],"","比上次好"),L("三頭","lb",[[50,10],[50,10],[50,10]],"","新嘗試，感受中上")]},
  {date:"2026-10-17", cardio:[C("緩坡快走","","30","","坡度11 速度4-5")], lifts:[L("器械胸推","lb",[[100,8],[100,8],[100,8]],"力竭","破百！感受度飽滿"),L("肩飛鳥","lb",[[30,12]],"","小重量多次數"),L("肩推","kg",[[15,10],[15,10],[15,10]],"力竭","單側，第三組行程縮短"),L("二頭彎舉","lb",[[55,8],[55,9],[55,10]]),L("三頭","lb",[[50,10],[50,10],[50,10]],"","痠約三天")]},
  {date:"2026-10-21", cardio:[C("緩坡快走","","30","","坡度11 速度4-5")], lifts:[L("器械胸推","lb",[[100,8],[100,8],[100,8],[100,8]],"","8下卡住、再組又行"),L("肩推","kg",[[15,10],[15,10],[15,10],[15,10]],"","單側，比上週好"),L("二頭彎舉","lb",[[60,8],[60,8],[60,8]],"力竭","輕微力竭"),L("三頭","lb",[[50,10],[50,10],[50,10]]),L("背下拉划","kg",[[40.8,8],[40.8,8],[40.8,8]],"","稍久沒做較吃力")]},
- {date:"2026-10-26", cardio:[C("緩坡快走","","30","","坡度11 速度4-5")], lifts:[L("二頭彎舉","lb",[[65,8],[65,8],[65,8]],"力竭","三組力竭，上一階"),L("三頭","lb",[[50,10],[50,10],[50,10]]),L("背下拉划","kg",[[40.8,10],[40.8,10],[40.8,10]],"","今天狀況好")]}
+ {date:"2026-10-26", cardio:[C("緩坡快走","","30","","坡度11 速度4-5")], lifts:[L("二頭彎舉","lb",[[65,8],[65,8],[65,8]],"力竭","三組力竭，上一階"),L("三頭","lb",[[50,10],[50,10],[50,10]]),L("背下拉划","kg",[[40.8,10],[40.8,10],[40.8,10]],"","今天狀況好")]},
+ {date:"2026-10-27", cardio:[C("緩坡快走","","30","","坡度11 速度4-5")], lifts:[L("器械胸推","lb",[[100,8],[100,8],[100,8],[100,8]],"力竭","第一組力竭，後面也偏力竭"),L("肩推","kg",[[15,10],[15,10],[15,10],[15,10]],"","單側，跟上次差不多"),L("二頭彎舉","lb",[[65,8],[65,8],[65,8]]),L("三頭","lb",[[50,10],[50,10],[50,10]]),L("背下拉划","kg",[[40.8,10],[40.8,9],[40.8,8]],"","前面肩胸飽滿、器械也用到手臂，比上次差一點")]}
 ];
 const SEEDW=[
- {date:"2026-08-05",kg:80.0},
+ {date:"2026-08-05",kg:80.0,fat:27.0},
  {date:"2026-08-10",kg:78.0},
  {date:"2026-08-13",kg:77.6,fat:26.3},
  {date:"2026-08-20",kg:77.4},
- {date:"2026-08-26",kg:77.2}
+ {date:"2026-08-26",kg:77.2},
+ {date:"2026-10-27",slot:"pm",kg:78.6,fat:25.7,vfat:9}
 ];
 
 /* ---------- state ---------- */
@@ -397,6 +415,16 @@ let state={ startDate:null, sessions:[], weights:[] };
 let draft={ cardio:[], lifts:[], coach:null };
 let pickerOpen=false;
 let calYM=null;
+let bodySlot="am";
+function slotOrder(s){ return s==="am"?0 : s==="pm"?2 : 1; }
+function wOrder(a,b){ return a.date!==b.date ? (a.date<b.date?-1:1) : slotOrder(a.slot)-slotOrder(b.slot); }
+function slotLbl(s){ return s==="am"?"早":s==="pm"?"晚":""; }
+function setBodySlot(s){
+  bodySlot=s;
+  const els=document.querySelectorAll("#slotToggle .st");
+  if(els[0]) els[0].classList.toggle("on",s==="am");
+  if(els[1]) els[1].classList.toggle("on",s==="pm");
+}
 
 function todayStr(){ const d=new Date(); return d.toISOString().slice(0,10); }
 function fmtDate(iso){ const d=new Date(iso); return (d.getMonth()+1)+"/"+d.getDate(); }
@@ -406,21 +434,35 @@ async function init(){
   const seeded=await S.get("seeded");
   state.sessions=JSON.parse(await S.get("sessions")||"[]");
   state.weights=JSON.parse(await S.get("weights")||"[]");
-  if(!seeded && state.sessions.length===0 && state.weights.length===0){
-    state.sessions=SEED.map((s,i)=>({id:1723000000000+i,date:s.date,cardio:s.cardio,lifts:s.lifts})).sort((a,b)=>a.date<b.date?1:-1);
-    state.weights=SEEDW.slice().sort((a,b)=>a.date<b.date?-1:1);
+  // merge any built-in records whose date isn't already stored (lets new versions add days without wiping your data)
+  const cleared=await S.get("cleared");
+  let ch=false;
+  if(!cleared) SEED.forEach((se,i)=>{
+    if(!state.sessions.some(s=>s.date===se.date)){
+      state.sessions.push({id:1723000000000+i,date:se.date,cardio:se.cardio||[],lifts:se.lifts||[],coach:se.coach||null});
+      ch=true;
+    }
+  });
+  if(!cleared) SEEDW.forEach(sw=>{
+    const slot=sw.slot||null;
+    const ex=state.weights.find(w=>w.date===sw.date && (w.slot||null)===slot);
+    if(!ex){ state.weights.push({date:sw.date,slot:sw.slot,kg:sw.kg,fat:sw.fat,vfat:sw.vfat}); ch=true; }
+    else { if(ex.fat==null && sw.fat!=null){ex.fat=sw.fat;ch=true;} if(ex.vfat==null && sw.vfat!=null){ex.vfat=sw.vfat;ch=true;} }
+  });
+  if(ch){
+    state.sessions.sort((a,b)=>a.date<b.date?1:-1);
+    state.weights.sort(wOrder);
     await S.set("sessions",JSON.stringify(state.sessions));
     await S.set("weights",JSON.stringify(state.weights));
+  }
+  if(!seeded){
     await S.set("goalTitle","減脂 · 肌肉維持");
-    await S.set("goalNote","起始 77.6kg / 體脂 26.3% · 改善脂肪肝與內臟脂肪");
+    await S.set("goalNote","起始 80kg / 體脂 27%（決心減重）· 改善脂肪肝與內臟脂肪");
     await S.set("startDate","2026-08-11");
     await S.set("seeded","1");
-    state.startDate="2026-08-11";
-  } else {
-    const sd=await S.get("startDate");
-    state.startDate=sd||todayStr();
-    if(!sd) await S.set("startDate",state.startDate);
   }
+  state.startDate=(await S.get("startDate"))||"2026-08-11";
+  setBodySlot(new Date().getHours()<14?"am":"pm");
   loadTodayDraft();
   document.getElementById("todayDate").textContent=fmtDate(todayStr());
   document.getElementById("goalTitle").value=(await S.get("goalTitle"))||"";
@@ -477,8 +519,12 @@ function renderBuilder(){
     const sets=(l.sets&&l.sets.length?l.sets:[{w:"",reps:""}]);
     html+=`<div class="bcard s"><div class="bhead"><div class="tab"></div><div class="kind">重量訓練</div><div class="rm" onclick="rmLift(${i})">×</div></div><div class="bbody">
       <input class="nameinput" value="${esc(l.name)}" onchange="upL(${i},'name',this.value)" placeholder="動作名稱">
-      <div class="unit-toggle"><span class="ut ${unit==='lb'?'on':''}" onclick="setUnit(${i},'lb')">磅 lb</span><span class="ut ${unit==='kg'?'on':''}" onclick="setUnit(${i},'kg')">公斤 kg</span></div>
-      <div>`;
+      <div class="unit-toggle"><span class="ut ${unit==='lb'?'on':''}" onclick="setUnit(${i},'lb')">磅 lb</span><span class="ut ${unit==='kg'?'on':''}" onclick="setUnit(${i},'kg')">公斤 kg</span></div>`;
+    const ref=lastLiftData(l.name);
+    if(ref){
+      html+=`<div class="lastref"><div class="lr-txt">上次 ${fmtDate(ref.date)}：<b>${ref.sets.map(x=>x.w+ref.unit+"×"+x.reps).join("　")}</b></div><button class="reffill" onclick="fillLast(${i})">帶入</button></div>`;
+    }
+    html+=`<div>`;
     sets.forEach((s,j)=>{
       const w=(s.w!==undefined?s.w:(s.lb!==undefined?s.lb:""));
       html+=`<div class="setline"><span class="sn">${j+1} 組</span>
@@ -522,6 +568,26 @@ function customAdd(){ addLift(""); pickerOpen=false; renderBuilder(); }
 function rmLift(i){ draft.lifts.splice(i,1); renderBuilder(); }
 function upL(i,f,v){ draft.lifts[i][f]=v; }
 function setUnit(i,u){ draft.lifts[i].unit=u; renderBuilder(); }
+function lastLiftData(name){
+  if(!name) return null;
+  const today=todayStr();
+  const days=[...state.sessions].filter(s=>s.date!==today).sort((a,b)=>a.date<b.date?1:-1);
+  for(const s of days){
+    for(const l of (s.lifts||[])){
+      if(l.name===name && l.sets && l.sets.length){
+        return {date:s.date, unit:l.unit||"lb", sets:l.sets.map(x=>({w:String(x.w!==undefined?x.w:(x.lb!==undefined?x.lb:"")), reps:String(x.reps||"")}))};
+      }
+    }
+  }
+  return null;
+}
+function fillLast(i){
+  const ref=lastLiftData(draft.lifts[i].name);
+  if(!ref){ toast("找不到上次紀錄"); return; }
+  draft.lifts[i].unit=ref.unit;
+  draft.lifts[i].sets=ref.sets.map(x=>({w:x.w,reps:x.reps}));
+  renderBuilder(); toast("已帶入上次數據，改今天的就好");
+}
 function setFeel(i,f){ draft.lifts[i].feel=(draft.lifts[i].feel===f?"":f); renderBuilder(); }
 function addSet(i){ draft.lifts[i].sets.push({w:"",reps:""}); renderBuilder(); }
 function rmSet(i,j){ draft.lifts[i].sets.splice(j,1); if(draft.lifts[i].sets.length===0) draft.lifts[i].sets.push({w:"",reps:""}); renderBuilder(); }
@@ -554,15 +620,17 @@ function copyLast(){
 async function addBody(){
   const kg=parseFloat(document.getElementById("wInput").value);
   const fat=parseFloat(document.getElementById("fatInput").value);
-  if(!kg && !fat){ toast("輸入體重或體脂再記錄"); return; }
-  let e=state.weights.find(x=>x.date===todayStr());
-  if(!e){ e={date:todayStr()}; state.weights.push(e); }
-  if(kg) e.kg=kg; if(fat) e.fat=fat;
-  state.weights.sort((a,b)=>a.date<b.date?-1:1);
+  const vfat=parseFloat(document.getElementById("vfatInput").value);
+  if(!kg && !fat && !vfat){ toast("輸入體重、體脂或內臟脂肪再記錄"); return; }
+  let e=state.weights.find(x=>x.date===todayStr() && x.slot===bodySlot);
+  if(!e){ e={date:todayStr(), slot:bodySlot}; state.weights.push(e); }
+  if(kg) e.kg=kg; if(fat) e.fat=fat; if(vfat) e.vfat=vfat;
+  state.weights.sort(wOrder);
   await S.set("weights",JSON.stringify(state.weights));
-  document.getElementById("wInput").value=""; document.getElementById("fatInput").value="";
-  toast("已記錄 ⚖️"); renderProgress();
+  document.getElementById("wInput").value=""; document.getElementById("fatInput").value=""; document.getElementById("vfatInput").value="";
+  toast("已記錄 "+(bodySlot==="am"?"🌅 早上":"🌙 晚上")); renderProgress();
 }
+function sortedW(){ return [...state.weights].sort(wOrder); }
 async function saveGoal(){
   await S.set("goalTitle",document.getElementById("goalTitle").value);
   await S.set("goalNote",document.getElementById("goalNote").value);
@@ -585,14 +653,14 @@ function switchView(v,btn){
 }
 
 /* ---------- progress ---------- */
-function renderProgress(){ renderGrid(); renderWeightChart(); renderFatChart(); renderRunChart(); renderBodyLog(); renderCardioLog(); }
+function renderProgress(){ renderGrid(); renderWeightChart(); renderFatChart(); renderVfatChart(); renderRunChart(); renderBodyLog(); renderCardioLog(); }
 function renderBodyLog(){
   const el=document.getElementById("bodyLog");
-  const ws=[...state.weights].filter(w=>w.kg||w.fat).sort((a,b)=>a.date<b.date?1:-1);
+  const ws=sortedW().filter(w=>w.kg||w.fat).reverse();
   if(ws.length===0){ el.innerHTML=""; return; }
   const rows=ws.map(w=>{
-    const md=new Date(w.date); const d=(md.getMonth()+1)+"/"+md.getDate();
-    const v=[w.kg?`<span>${w.kg} kg</span>`:"", w.fat?`<span class="fat">${w.fat}%</span>`:""].join("");
+    const md=new Date(w.date); const sl=slotLbl(w.slot); const d=(md.getMonth()+1)+"/"+md.getDate()+(sl?" "+sl:"");
+    const v=[w.kg?`<span>${w.kg} kg</span>`:"", w.fat?`<span class="fat">${w.fat}%</span>`:"", w.vfat?`<span class="vf">內臟${w.vfat}</span>`:""].join("");
     return `<div class="recrow"><span class="rd">${d}</span><span class="rv">${v}</span></div>`;
   }).join("");
   el.innerHTML=`<details class="recdetails"><summary><span>查看每日紀錄（${ws.length} 筆）</span><span class="arrow">▾</span></summary><div class="reclist">${rows}</div></details>`;
@@ -651,8 +719,9 @@ function drawLine(svgId,pts,color,fmt){
   svg.innerHTML=`<defs><linearGradient id="g_${svgId}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${color}" stop-opacity="0.18"/><stop offset="1" stop-color="${color}" stop-opacity="0"/></linearGradient></defs>
     <path d="${area}" fill="url(#g_${svgId})"/><path d="${d}" fill="none" stroke="${color}" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>${dots}${lbl(0)}${n>1?lbl(n-1):""}`;
 }
-function renderWeightChart(){ drawLine("weightChart", state.weights.filter(w=>w.kg).map(w=>({y:w.kg})), "#2F7D34", v=>v.toFixed(1)); }
-function renderFatChart(){ drawLine("fatChart", state.weights.filter(w=>w.fat).map(w=>({y:w.fat})), "#E4572E", v=>v.toFixed(1)+"%"); }
+function renderWeightChart(){ drawLine("weightChart", sortedW().filter(w=>w.kg).map(w=>({y:w.kg})), "#2F7D34", v=>v.toFixed(1)); }
+function renderFatChart(){ drawLine("fatChart", sortedW().filter(w=>w.fat).map(w=>({y:w.fat})), "#E4572E", v=>v.toFixed(1)+"%"); }
+function renderVfatChart(){ drawLine("vfatChart", sortedW().filter(w=>w.vfat).map(w=>({y:w.vfat})), "#C98A1A", v=>"等級 "+Math.round(v)); }
 function renderRunChart(){
   const wc=state.sessions.filter(s=>s.cardio&&s.cardio.length).slice().reverse();
   const pts=wc.map(s=>({y:s.cardio.reduce((a,c)=>a+(parseFloat(c.min)||0),0)})).filter(p=>p.y>0);
@@ -702,7 +771,7 @@ async function resetAll(btn){
   state.sessions=[]; state.weights=[]; draft={cardio:[],lifts:[]}; pickerOpen=false;
   await S.set("sessions","[]"); await S.set("weights","[]");
   await S.set("goalTitle",""); await S.set("goalNote","");
-  await S.set("seeded","1");
+  await S.set("seeded","1"); await S.set("cleared","1");
   const gt=document.getElementById("goalTitle"),gn=document.getElementById("goalNote");
   if(gt)gt.value=""; if(gn)gn.value="";
   renderBuilder(); renderHeader(); renderStats(); renderHistory(); renderProgress();
